@@ -24,6 +24,7 @@ export interface Database {
                     zip_code: string | null
                     created_at: string
                     updated_at: string
+                    is_admin: boolean
                 }
                 Insert: {
                     id?: string
@@ -36,6 +37,7 @@ export interface Database {
                     zip_code?: string | null
                     created_at?: string
                     updated_at?: string
+                    is_admin?: boolean
                 }
                 Update: {
                     id?: string
@@ -48,6 +50,7 @@ export interface Database {
                     zip_code?: string | null
                     created_at?: string
                     updated_at?: string
+                    is_admin?: boolean
                 }
                 Relationships: []
             }

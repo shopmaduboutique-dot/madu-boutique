@@ -15,6 +15,7 @@ export interface User {
     city: string | null
     state: string | null
     zipCode: string | null
+    isAdmin?: boolean
 }
 
 interface AuthResult {
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     city: data.city,
                     state: data.state,
                     zipCode: data.zip_code,
+                    isAdmin: data.is_admin || false,
                 }
             }
             return null
