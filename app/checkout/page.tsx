@@ -354,6 +354,31 @@ function CheckoutContent() {
         )
     }
 
+    // Block unauthenticated users - show sign in required screen
+    if (!authLoading && !isAuthenticated) {
+        return (
+            <>
+                <PhoneAuthModal
+                    isOpen={true}
+                    onSuccess={() => { }}
+                />
+                <Navbar />
+                <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+                    <div className="text-center p-8 max-w-md">
+                        <div className="w-20 h-20 mx-auto mb-6 bg-orange-100 rounded-full flex items-center justify-center">
+                            <svg className="w-10 h-10 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                        <h2 className="text-2xl font-bold text-black mb-4">Sign In Required</h2>
+                        <p className="text-gray-600 mb-6">Please sign in or create an account to complete your purchase.</p>
+                    </div>
+                </main>
+                <Footer />
+            </>
+        )
+    }
+
     // Order success state
     if (orderSuccess) {
         return (
