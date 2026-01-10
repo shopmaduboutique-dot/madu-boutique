@@ -633,3 +633,12 @@ function CheckoutContent() {
         </>
     )
 }
+
+// Default export with Suspense wrapper
+export default function CheckoutPage() {
+    return (
+        <Suspense fallback={<CheckoutLoading />}>
+            <CheckoutContent />
+        </Suspense>
+    )
+}
