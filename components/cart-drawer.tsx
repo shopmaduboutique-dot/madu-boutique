@@ -1,10 +1,34 @@
 "use client"
 
-import Link from "next/link"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
+import { useAuth } from "@/lib/auth-context"
+import PhoneAuthModal from "@/components/phone-auth-modal"
 
 export function CartDrawer() {
+  const router = useRouter()
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
   const { cartItems, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity } = useCart()
+  const [showAuthModal, setShowAuthModal] = useState(false)
+
+  // Handle checkout - check auth first
+  const handleCheckout = () => {
+    if (authLoading) return
+    if (isAuthenticated) {
+      setIsCartOpen(false)
+      router.push("/checkout")
+    } else {
+      setShowAuthModal(true)
+    }
+  }
+
+  // After successful auth, proceed to checkout
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false)
+    setIsCartOpen(false)
+    router.push("/checkout")
+  }
 
   if (!isCartOpen) return null
 
@@ -89,14 +113,19 @@ export function CartDrawer() {
               <span>Total:</span>
               <span className="text-orange-600">₹{total.toLocaleString()}</span>
             </div>
-            <Link href="/checkout" onClick={() => setIsCartOpen(false)}>
-              <button className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 rounded-lg font-bold hover:shadow-lg transition-all">
-                Proceed to Checkout
-              </button>
-            </Link>
+            <button
+              onClick={handleCheckout}
+              disabled={authLoading}
+              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 rounded-lg font-bold hover:shadow-lg transition-all disabled:opacity-50"
+            >
+              {authLoading ? "Loading..." : "Proceed to Checkout"}
+            </button>
           </div>
         )}
       </div>
+
+      {/* Auth Modal */}
+      <PhoneAuthModal isOpen={showAuthModal} onSuccess={handleAuthSuccess} />
     </>
   )
 }
