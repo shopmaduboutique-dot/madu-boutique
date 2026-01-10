@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Navbar from "@/components/layout/navbar"
 import Footer from "@/components/layout/footer"
@@ -16,7 +16,17 @@ declare global {
     }
 }
 
-export default function CheckoutPage() {
+// Loading fallback for Suspense
+function CheckoutLoading() {
+    return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
+        </div>
+    )
+}
+
+// Main checkout content component
+function CheckoutContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { cartItems, clearCart } = useCart()
