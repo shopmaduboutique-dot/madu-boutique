@@ -206,3 +206,33 @@ BEGIN
   RETURN 'ORD-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || UPPER(SUBSTR(MD5(RANDOM()::TEXT), 1, 6));
 END;
 $$ LANGUAGE plpgsql;
+
+-- =====================================================
+-- 9. STORAGE BUCKET & POLICIES
+-- =====================================================
+-- Setup the storage bucket for product images
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('product-images', 'product-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Enable RLS (Usually enabled by default. Commenting out to avoid permission errors)
+-- ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- ALLOW PUBLIC READ (View images)
+CREATE POLICY "Public Access"
+ON storage.objects FOR SELECT
+USING ( bucket_id = 'product-images' );
+
+-- ALLOW UPLOADS (Authenticated & Anon for now to prevent RLS blocking)
+CREATE POLICY "Allow Uploads"
+ON storage.objects FOR INSERT
+WITH CHECK ( bucket_id = 'product-images' );
+
+-- ALLOW UPDATES/DELETES
+CREATE POLICY "Allow Updates"
+ON storage.objects FOR UPDATE
+USING ( bucket_id = 'product-images' );
+
+CREATE POLICY "Allow Deletes"
+ON storage.objects FOR DELETE
+USING ( bucket_id = 'product-images' );

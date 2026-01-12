@@ -1,9 +1,10 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useCallback, useEffect } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import type { Session } from "@supabase/supabase-js"
+import { SupabaseErrorSuppressor } from "@/components/supabase-error-suppressor"
 
 // User type for the app
 export interface User {
@@ -15,7 +16,6 @@ export interface User {
     city: string | null
     state: string | null
     zipCode: string | null
-    isAdmin?: boolean
 }
 
 interface AuthResult {
@@ -46,11 +46,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Fetch user profile from users table
     const fetchUserProfile = useCallback(async (email: string): Promise<User | null> => {
         try {
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from("users")
                 .select("*")
                 .eq("email", email.toLowerCase())
-                .single()
+                .maybeSingle()
+
+            if (error) {
+                console.debug('Profile fetch issue:', error)
+                return null
+            }
 
             if (data) {
                 return {
@@ -62,7 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     city: data.city,
                     state: data.state,
                     zipCode: data.zip_code,
-                    isAdmin: data.is_admin || false,
                 }
             }
             return null
@@ -73,70 +77,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Create user profile if doesn't exist
     const createUserProfile = useCallback(async (email: string, fullName?: string) => {
-        const { data: existingUser } = await supabase
-            .from("users")
-            .select("id")
-            .eq("email", email.toLowerCase())
-            .single()
-
-        if (!existingUser) {
-            await supabase.from("users").insert({
+        try {
+            // Use upsert to handle race conditions (409s)
+            // ignoreDuplicates: true means "Insert if not exists, otherwise do nothing"
+            // This prevents overwriting existing data (like phone numbers) if the user already exists
+            const { error } = await supabase.from("users").upsert({
                 email: email.toLowerCase(),
                 phone: "",
                 full_name: fullName || "",
+            }, {
+                onConflict: 'email',
+                ignoreDuplicates: true
             })
+
+            if (error) {
+                console.debug('Profile creation failed:', error)
+            }
+        } catch (err) {
+            console.debug('Profile operation failed:', err)
         }
     }, [])
 
     // Listen to auth state changes
+    // Ref to prevent parallel auth operations (signIn, signUp, etc.)
+    const authOperationRef = useRef(false)
+
     useEffect(() => {
         let mounted = true
 
-        const initAuth = async () => {
-            // Check if this is an OAuth callback (URL contains access_token or error)
-            const hashParams = new URLSearchParams(window.location.hash.substring(1))
-            const isOAuthCallback = hashParams.has('access_token') || hashParams.has('error')
-
-            if (isOAuthCallback) {
-                // Let onAuthStateChange handle the OAuth callback
-                // Don't set loading to false yet
-                return
-            }
-
-            // Get initial session
-            const { data: { session } } = await supabase.auth.getSession()
-
-            if (mounted) {
-                setSession(session)
-                if (session?.user?.email) {
-                    const profile = await fetchUserProfile(session.user.email)
-                    setUser(profile)
-                }
-                setIsLoading(false)
-            }
-        }
-
-        initAuth()
-
-        // Listen for auth changes (handles OAuth callbacks)
+        // Listen for auth changes (handles OAuth callbacks, initial load, etc.)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (!mounted) return
 
+                console.debug("Auth state change:", event)
                 setSession(session)
 
                 if (session?.user?.email) {
-                    // Create profile if new user
-                    await createUserProfile(
-                        session.user.email,
-                        session.user.user_metadata?.full_name || session.user.user_metadata?.name
-                    )
+                    // Only create profile on explicit sign-in event
+                    if (event === 'SIGNED_IN') {
+                        await createUserProfile(
+                            session.user.email,
+                            session.user.user_metadata?.full_name || session.user.user_metadata?.name
+                        )
+                    }
+
+                    // Fetch profile if we have a session (mostly for initial load or refresh)
+                    // We can optimize this by checking if 'user' is already set, 
+                    // but to be safe and ensure data freshness on auth events, we fetch.
+                    // This uses maybeSingle() so it's cheap and safe.
                     const profile = await fetchUserProfile(session.user.email)
-                    setUser(profile)
+                    if (mounted) setUser(profile)
                 } else {
-                    setUser(null)
+                    if (mounted) setUser(null)
                 }
-                setIsLoading(false)
+
+                if (mounted) setIsLoading(false)
             }
         )
 
@@ -148,6 +144,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Sign Up with Email & Password
     const signUp = useCallback(async (email: string, password: string, fullName?: string): Promise<AuthResult> => {
+        if (authOperationRef.current) return { success: false, error: "Operation in progress" }
+        authOperationRef.current = true
         try {
             const { data, error } = await supabase.auth.signUp({
                 email: email.trim().toLowerCase(),
@@ -173,11 +171,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { success: true }
         } catch (error: any) {
             return { success: false, error: error.message || "Failed to sign up" }
+        } finally {
+            authOperationRef.current = false
         }
     }, [])
 
     // Sign In with Email & Password
     const signIn = useCallback(async (email: string, password: string): Promise<AuthResult> => {
+        if (authOperationRef.current) return { success: false, error: "Operation in progress" }
+        authOperationRef.current = true
         try {
             const { error } = await supabase.auth.signInWithPassword({
                 email: email.trim().toLowerCase(),
@@ -192,11 +194,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { success: true }
         } catch (error: any) {
             return { success: false, error: error.message || "Failed to sign in" }
+        } finally {
+            authOperationRef.current = false
         }
     }, [])
 
     // Sign In with Google
     const signInWithGoogle = useCallback(async (): Promise<AuthResult> => {
+        if (authOperationRef.current) return { success: false, error: "Operation in progress" }
+        authOperationRef.current = true
         try {
             // Use current URL to preserve query params (productId, size, etc.)
             const { error } = await supabase.auth.signInWithOAuth({
@@ -214,11 +220,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { success: true }
         } catch (error: any) {
             return { success: false, error: error.message || "Failed to sign in with Google" }
+        } finally {
+            authOperationRef.current = false
         }
     }, [])
 
     // Forgot Password - Send Reset Email
     const forgotPassword = useCallback(async (email: string): Promise<AuthResult> => {
+        if (authOperationRef.current) return { success: false, error: "Operation in progress" }
+        authOperationRef.current = true
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(
                 email.trim().toLowerCase(),
@@ -235,11 +245,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { success: true }
         } catch (error: any) {
             return { success: false, error: error.message || "Failed to send reset email" }
+        } finally {
+            authOperationRef.current = false
         }
     }, [])
 
     // Reset Password (called after clicking email link)
     const resetPassword = useCallback(async (newPassword: string): Promise<AuthResult> => {
+        if (authOperationRef.current) return { success: false, error: "Operation in progress" }
+        authOperationRef.current = true
         try {
             const { error } = await supabase.auth.updateUser({
                 password: newPassword,
@@ -253,6 +267,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { success: true }
         } catch (error: any) {
             return { success: false, error: error.message || "Failed to reset password" }
+        } finally {
+            authOperationRef.current = false
         }
     }, [])
 
@@ -280,6 +296,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 logout,
             }}
         >
+            <SupabaseErrorSuppressor />
             {children}
         </AuthContext.Provider>
     )

@@ -1,5 +1,5 @@
 // Supabase client configuration
-import { createClient } from "@supabase/supabase-js"
+import { createClient, SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "./database.types"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -9,7 +9,29 @@ if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error("Missing Supabase environment variables")
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+// Singleton pattern to prevent multiple client instances in dev mode
+let supabaseInstance: SupabaseClient<Database> | null = null
+
+function getSupabaseClient(): SupabaseClient<Database> {
+    if (supabaseInstance) return supabaseInstance
+
+    supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+        realtime: {
+            params: {
+                eventsPerSecond: 10,
+            },
+        },
+        global: {
+            headers: {
+                'X-Client-Info': 'madu-boutique',
+            },
+        },
+    })
+
+    return supabaseInstance
+}
+
+export const supabase = getSupabaseClient()
 
 // Server-side client for API routes (uses service role key if available)
 export function createServerClient() {
@@ -25,3 +47,4 @@ export function createServerClient() {
         }
     )
 }
+

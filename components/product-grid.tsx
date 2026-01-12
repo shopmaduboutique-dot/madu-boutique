@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import ProductCard from "./product-card"
 import type { Product } from "@/lib/types"
 
@@ -8,34 +8,66 @@ interface ProductGridProps {
   category: string
 }
 
+import { supabase } from "@/lib/supabase"
+
 export default function ProductGrid({ category }: ProductGridProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchProducts() {
-      setLoading(true)
-      setError(null)
+  const fetchProducts = useCallback(async (signal?: AbortSignal, showLoading = false) => {
+    if (showLoading) setLoading(true)
+    setError(null)
 
-      try {
-        const response = await fetch(`/api/products?category=${category}`)
-        const data = await response.json()
+    try {
+      const response = await fetch(`/api/products?category=${category}`, { signal })
+      const data = await response.json()
 
-        if (data.success) {
-          setProducts(data.data)
-        } else {
-          setError(data.error || "Failed to load products")
-        }
-      } catch (err) {
-        setError("Failed to load products")
-      } finally {
-        setLoading(false)
+      if (data.success) {
+        setProducts(data.data)
+      } else {
+        setError(data.error || "Failed to load products")
       }
+    } catch (err: any) {
+      if (err.name === 'AbortError' || err.message?.includes('aborted')) return
+      console.error("Fetch error:", err)
+      setError("Failed to load products")
+    } finally {
+      if (showLoading) setLoading(false)
     }
-
-    fetchProducts()
   }, [category])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    // 1. Initial Fetch
+    fetchProducts(controller.signal, true)
+
+    // 2. Real-time Subscription
+    // Subscribe to INSERT, UPDATE, DELETE events on the 'products' table
+    const channel = supabase
+      .channel('public:products')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'products',
+        },
+        (payload) => {
+          console.log('Real-time change received:', payload)
+          // Simple strategy: Re-fetch full list to ensure consistency and correct sorting
+          fetchProducts(controller.signal, false) // Use same signal to cancel if unmounted
+        }
+      )
+      .subscribe()
+
+    // 3. Cleanup
+    return () => {
+      controller.abort()
+      supabase.removeChannel(channel)
+    }
+  }, [fetchProducts])
 
   if (loading) {
     return (

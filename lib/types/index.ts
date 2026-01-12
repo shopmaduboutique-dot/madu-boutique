@@ -1,10 +1,10 @@
 // Shared TypeScript types for the e-commerce application
 
 export interface Product {
-    id: number
+    id: string
     name: string
-    price: string
-    originalPrice: string
+    price: number
+    originalPrice?: number
     image: string
     images: string[]
     sizes: string[]

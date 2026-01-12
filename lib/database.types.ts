@@ -1,4 +1,4 @@
-// Auto-generated Supabase database types
+﻿// Auto-generated Supabase database types
 // You can regenerate this file using: npx supabase gen types typescript
 
 export type Json =
@@ -24,7 +24,6 @@ export interface Database {
                     zip_code: string | null
                     created_at: string
                     updated_at: string
-                    is_admin: boolean
                 }
                 Insert: {
                     id?: string
@@ -37,7 +36,6 @@ export interface Database {
                     zip_code?: string | null
                     created_at?: string
                     updated_at?: string
-                    is_admin?: boolean
                 }
                 Update: {
                     id?: string
@@ -50,7 +48,6 @@ export interface Database {
                     zip_code?: string | null
                     created_at?: string
                     updated_at?: string
-                    is_admin?: boolean
                 }
                 Relationships: []
             }

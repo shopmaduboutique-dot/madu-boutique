@@ -1,86 +1,100 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { supabase } from "@/lib/supabase"
+import { useAdminStats } from "@/lib/admin/hooks/use-admin-stats"
+import DashboardStats from "@/components/admin/dashboard-stats"
+import SalesChart from "@/components/admin/sales-chart"
+import RecentOrdersTable from "@/components/admin/recent-orders-table"
+import LowStockAlerts from "@/components/admin/low-stock-alerts"
 
-export default function AdminDashboardPage() {
-    const [stats, setStats] = useState({
-        totalProducts: 0,
-        totalOrders: 0,
-        totalRevenue: 0,
-    })
-    const [isLoading, setIsLoading] = useState(true)
+export default function DashboardPage() {
+    const { stats, recentOrders, loading, error } = useAdminStats()
 
-    useEffect(() => {
-        async function fetchStats() {
-            try {
-                const { count: productCount } = await supabase
-                    .from("products")
-                    .select("*", { count: "exact", head: true })
-
-                const { data: orders } = await supabase
-                    .from("orders")
-                    .select("total")
-
-                const totalRevenue = orders?.reduce((sum, order) => sum + (order.total || 0), 0) || 0
-                const orderCount = orders?.length || 0
-
-                setStats({
-                    totalProducts: productCount || 0,
-                    totalOrders: orderCount,
-                    totalRevenue: totalRevenue,
-                })
-            } catch (error) {
-                console.error("Error fetching stats:", error)
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        fetchStats()
-    }, [])
-
-    if (isLoading) {
-        return <div>Loading stats...</div>
-    }
-
-    return (
-        <div className="space-y-8">
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <p className="text-sm font-medium text-gray-500">Total Revenue</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">
-                        ₹{stats.totalRevenue.toLocaleString('en-IN')}
-                    </p>
+    if (loading) {
+        return (
+            <div className="space-y-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+                    <p className="text-gray-500 mt-1">Welcome back! Here&apos;s what&apos;s happening today.</p>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <p className="text-sm font-medium text-gray-500">Total Orders</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalOrders}</p>
+                {/* Loading skeleton */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
+                            <div className="h-4 bg-gray-200 rounded w-20 mb-3" />
+                            <div className="h-8 bg-gray-200 rounded w-24 mb-2" />
+                            <div className="h-3 bg-gray-100 rounded w-16" />
+                        </div>
+                    ))}
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <p className="text-sm font-medium text-gray-500">Total Products</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalProducts}</p>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
-                    <div className="flex gap-4">
-                        <Link href="/admin/products/new" className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
-                            Add New Product
-                        </Link>
-                        <Link href="/admin/products" className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                            Manage Products
-                        </Link>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+                        <div className="h-6 bg-gray-200 rounded w-32 mb-4" />
+                        <div className="h-[300px] bg-gray-100 rounded" />
+                    </div>
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+                        <div className="h-6 bg-gray-200 rounded w-32 mb-4" />
+                        <div className="space-y-3">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="h-12 bg-gray-100 rounded" />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="text-center py-12">
+                <p className="text-red-500 mb-4">{error}</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="text-orange-600 font-medium hover:text-orange-700"
+                >
+                    Try again
+                </button>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div>
+                <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+                <p className="text-gray-500 mt-1">Welcome back! Here&apos;s what&apos;s happening today.</p>
+            </div>
+
+            {/* Stats Cards */}
+            {stats && (
+                <DashboardStats
+                    totalOrders={stats.totalOrders}
+                    totalRevenue={stats.totalRevenue}
+                    totalProducts={stats.totalProducts}
+                    lowStockCount={stats.lowStockCount}
+                    todaysOrders={stats.todaysOrders}
+                    todaysRevenue={stats.todaysRevenue}
+                />
+            )}
+
+            {/* Charts and Tables */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Sales Chart - takes 2 columns */}
+                <div className="lg:col-span-2">
+                    {stats && <SalesChart data={stats.salesData} />}
+                </div>
+
+                {/* Low Stock Alerts */}
+                <div>
+                    <LowStockAlerts />
+                </div>
+            </div>
+
+            {/* Recent Orders */}
+            <RecentOrdersTable orders={recentOrders} />
         </div>
     )
 }

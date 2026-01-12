@@ -11,6 +11,7 @@ const navLinks = [
     { name: "Home", href: "/" },
     { name: "Sarees", href: "/category/saree" },
     { name: "Chudithars", href: "/category/chudithar" },
+    { name: "My Orders", href: "/orders" },
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },
 ]
@@ -66,30 +67,35 @@ export default function Navbar() {
                             {/* User Auth Section */}
                             {!isLoading && (
                                 <>
-                                    {isAuthenticated && user ? (
+                                    {isAuthenticated ? (
                                         <div className="relative">
                                             <button
                                                 onClick={() => setShowUserMenu(!showUserMenu)}
-                                                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                                className="w-10 h-10 bg-[#3d4f5f] rounded-full flex items-center justify-center text-white font-semibold text-lg hover:bg-[#4a5d6d] transition-colors"
+                                                title={user?.fullName || user?.email || 'Profile'}
                                             >
-                                                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                                    {user.fullName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
-                                                </div>
-                                                <span className="text-sm font-medium text-gray-700 max-w-[120px] truncate">
-                                                    {user.fullName || user.email?.split('@')[0]}
-                                                </span>
-                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
+                                                {user?.fullName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
                                             </button>
 
                                             {/* User Dropdown Menu */}
                                             {showUserMenu && (
                                                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
                                                     <div className="px-4 py-2 border-b border-gray-100">
-                                                        <p className="text-sm font-medium text-gray-900 truncate">{user.fullName || 'User'}</p>
-                                                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                                                        <p className="text-sm font-medium text-gray-900 truncate">{user?.fullName || 'User'}</p>
+                                                        <p className="text-xs text-gray-500 truncate">{user?.email || ''}</p>
                                                     </div>
+                                                    <Link
+                                                        href="/orders"
+                                                        onClick={() => setShowUserMenu(false)}
+                                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                                    >
+                                                        <span className="flex items-center gap-2">
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                                            </svg>
+                                                            My Orders
+                                                        </span>
+                                                    </Link>
                                                     <button
                                                         onClick={() => {
                                                             logout()
@@ -110,7 +116,7 @@ export default function Navbar() {
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                             </svg>
-                                            Sign In
+                                            Sign Up
                                         </button>
                                     )}
                                 </>
@@ -204,6 +210,16 @@ export default function Navbar() {
                                                     <p className="text-sm font-medium text-gray-900">{user.fullName || 'User'}</p>
                                                     <p className="text-xs text-gray-500">{user.email}</p>
                                                 </div>
+                                                <Link
+                                                    href="/orders"
+                                                    onClick={() => setIsMobileMenuOpen(false)}
+                                                    className="px-4 py-3 text-left text-base font-medium text-gray-700 hover:bg-gray-100 rounded-lg flex items-center gap-2"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                                    </svg>
+                                                    My Orders
+                                                </Link>
                                                 <button
                                                     onClick={() => {
                                                         logout()
@@ -253,6 +269,7 @@ export default function Navbar() {
             <AuthModal
                 isOpen={showAuthModal}
                 onSuccess={() => setShowAuthModal(false)}
+                onClose={() => setShowAuthModal(false)}
             />
         </>
     )

@@ -1,16 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 
 interface AuthModalProps {
     isOpen: boolean
     onSuccess: () => void
+    onClose?: () => void
 }
 
 type AuthMode = "signin" | "signup" | "forgot"
 
-export default function PhoneAuthModal({ isOpen, onSuccess }: AuthModalProps) {
+export default function PhoneAuthModal({ isOpen, onSuccess, onClose }: AuthModalProps) {
     const { signIn, signUp, signInWithGoogle, forgotPassword, isLoading } = useAuth()
     const [mode, setMode] = useState<AuthMode>("signin")
     const [email, setEmail] = useState("")
@@ -20,6 +21,25 @@ export default function PhoneAuthModal({ isOpen, onSuccess }: AuthModalProps) {
     const [error, setError] = useState("")
     const [successMessage, setSuccessMessage] = useState("")
     const [googleLoading, setGoogleLoading] = useState(false)
+
+    // Reset form state when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            setEmail("")
+            setPassword("")
+            setConfirmPassword("")
+            setFullName("")
+            setError("")
+            setSuccessMessage("")
+            setMode("signin")
+        }
+    }, [isOpen])
+
+    const handleClose = () => {
+        if (onClose) {
+            onClose()
+        }
+    }
 
     const isValidEmail = (email: string) => {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
@@ -55,7 +75,15 @@ export default function PhoneAuthModal({ isOpen, onSuccess }: AuthModalProps) {
         if (result.success) {
             onSuccess()
         } else {
-            setError(result.error || "Invalid email or password")
+            // Better error messages
+            const errorMsg = result.error || "Invalid email or password"
+            if (errorMsg.toLowerCase().includes("invalid")) {
+                setError("Invalid email or password. Please check your credentials and try again.")
+            } else if (errorMsg.toLowerCase().includes("not found")) {
+                setError("No account found with this email. Please sign up first.")
+            } else {
+                setError(errorMsg)
+            }
         }
     }
 
@@ -91,7 +119,15 @@ export default function PhoneAuthModal({ isOpen, onSuccess }: AuthModalProps) {
                 onSuccess()
             }
         } else {
-            setError(result.error || "Failed to create account")
+            // Better error messages for sign up
+            const errorMsg = result.error || "Failed to create account"
+            if (errorMsg.toLowerCase().includes("already") || errorMsg.toLowerCase().includes("exists")) {
+                setError("An account with this email already exists. Please sign in instead.")
+            } else if (errorMsg.toLowerCase().includes("weak") || errorMsg.toLowerCase().includes("password")) {
+                setError("Password is too weak. Please use at least 6 characters with a mix of letters and numbers.")
+            } else {
+                setError(errorMsg)
+            }
         }
     }
 
@@ -123,10 +159,27 @@ export default function PhoneAuthModal({ isOpen, onSuccess }: AuthModalProps) {
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={handleClose}
+        >
+            <div
+                className="w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto scrollbar-hide"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
+                <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white relative">
+                    {/* Close Button */}
+                    <button
+                        onClick={handleClose}
+                        className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                        aria-label="Close"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                     <h2 className="text-2xl font-bold">
                         {mode === "signin" && "Welcome Back"}
                         {mode === "signup" && "Create Account"}

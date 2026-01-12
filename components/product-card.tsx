@@ -79,8 +79,8 @@ export default function ProductCard({ product }: ProductCardProps) {
                   key={size}
                   onClick={() => setSelectedSize(size)}
                   className={`px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg border-2 transition-all active:scale-95 ${selectedSize === size
-                      ? "border-orange-500 bg-orange-50 text-orange-600 shadow-sm"
-                      : "border-gray-200 text-black hover:border-orange-300 hover:bg-orange-50"
+                    ? "border-orange-500 bg-orange-50 text-orange-600 shadow-sm"
+                    : "border-gray-200 text-black hover:border-orange-300 hover:bg-orange-50"
                     }`}
                 >
                   {size}

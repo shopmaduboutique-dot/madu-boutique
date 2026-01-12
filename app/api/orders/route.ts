@@ -184,11 +184,12 @@ export async function POST(request: Request) {
     }
 }
 
-// GET /api/orders - Get orders (optional: by user phone)
+// GET /api/orders - Get orders (optional: by user phone or email)
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url)
         const phone = searchParams.get("phone")
+        const email = searchParams.get("email")
 
         const supabase = createServerClient()
 
@@ -202,6 +203,8 @@ export async function GET(request: Request) {
 
         if (phone) {
             query = query.eq("delivery_phone", phone)
+        } else if (email) {
+            query = query.eq("delivery_email", email)
         }
 
         const { data: orders, error } = await query

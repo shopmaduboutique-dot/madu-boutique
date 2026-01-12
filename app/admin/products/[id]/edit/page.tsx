@@ -1,252 +1,110 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
+import { useState, useEffect, use } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
+import { ChevronLeft } from "lucide-react"
+import ProductForm from "@/components/admin/product-form"
 
-export default function EditProductPage() {
+interface EditProductPageProps {
+    params: Promise<{ id: string }>
+}
+
+export default function EditProductPage({ params }: EditProductPageProps) {
+    const { id } = use(params)
     const router = useRouter()
-    const params = useParams()
-    const id = params?.id as string
-
-    const [isLoading, setIsLoading] = useState(true)
-    const [isSaving, setIsSaving] = useState(false)
-    const [formData, setFormData] = useState({
-        name: "",
-        description: "",
-        category: "saree",
-        price: "",
-        original_price: "",
-        stock_quantity: "",
-        sizes: "",
-        material: "",
-        care: "",
-    })
-    const [currentImage, setCurrentImage] = useState<string | null>(null)
-    const [imageFile, setImageFile] = useState<File | null>(null)
+    const [product, setProduct] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        if (id) fetchProduct()
+        const fetchProduct = async () => {
+            try {
+                const response = await fetch(`/api/admin/products/${id}`)
+                const data = await response.json()
+
+                if (data.success) {
+                    setProduct(data.data)
+                } else {
+                    setError(data.error || "Failed to load product")
+                }
+            } catch (err) {
+                console.error("Error fetching product:", err)
+                setError("Failed to load product")
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchProduct()
     }, [id])
 
-    async function fetchProduct() {
-        try {
-            const { data, error } = await supabase
-                .from("products")
-                .select("*")
-                .eq("id", parseInt(id))
-                .single()
-
-            if (error) throw error
-
-            if (data) {
-                setFormData({
-                    name: data.name,
-                    description: data.description || "",
-                    category: data.category,
-                    price: data.price.toString(),
-                    original_price: data.original_price?.toString() || "",
-                    stock_quantity: data.stock_quantity.toString(),
-                    sizes: data.sizes ? data.sizes.join(", ") : "",
-                    material: data.material || "",
-                    care: data.care || "",
-                })
-                setCurrentImage(data.image)
-            }
-        } catch (error) {
-            console.error("Error fetching product:", error)
-        } finally {
-            setIsLoading(false)
-        }
+    if (loading) {
+        return (
+            <div className="space-y-6">
+                <div>
+                    <div className="h-4 w-32 bg-gray-200 rounded mb-2" />
+                    <div className="h-8 w-48 bg-gray-200 rounded" />
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+                    <div className="space-y-4">
+                        {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="h-12 bg-gray-100 rounded" />
+                        ))}
+                    </div>
+                </div>
+            </div>
+        )
     }
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
+    if (error || !product) {
+        return (
+            <div className="text-center py-12">
+                <p className="text-red-500 mb-4">{error || "Product not found"}</p>
+                <button
+                    onClick={() => router.push("/admin/products")}
+                    className="text-orange-600 font-medium hover:text-orange-700"
+                >
+                    Back to Products
+                </button>
+            </div>
+        )
     }
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setImageFile(e.target.files[0])
-        }
+    // Transform product data for the form
+    const initialData = {
+        name: product.name,
+        price: String(product.price),
+        original_price: product.original_price ? String(product.original_price) : "",
+        description: product.description || "",
+        details: product.details || "",
+        material: product.material || "",
+        care: product.care || "",
+        category: product.category,
+        sizes: product.sizes || ["Free Size"],
+        is_new: product.is_new || false,
+        in_stock: product.in_stock ?? true,
+        stock_quantity: String(product.stock_quantity || 0),
+        images: product.images || (product.image ? [product.image] : []),
     }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setIsSaving(true)
-
-        try {
-            let imageUrl = currentImage
-
-            if (imageFile) {
-                const fileExt = imageFile.name.split('.').pop()
-                const fileName = `${Date.now()}.${fileExt}`
-                const { error: uploadError } = await supabase.storage
-                    .from('product-images')
-                    .upload(fileName, imageFile)
-
-                if (uploadError) throw uploadError
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('product-images')
-                    .getPublicUrl(fileName)
-
-                imageUrl = publicUrl
-            }
-
-            const { error: updateError } = await supabase
-                .from('products')
-                .update({
-                    name: formData.name,
-                    description: formData.description,
-                    category: formData.category,
-                    price: parseFloat(formData.price),
-                    original_price: formData.original_price ? parseFloat(formData.original_price) : null,
-                    stock_quantity: parseInt(formData.stock_quantity),
-                    sizes: formData.sizes ? formData.sizes.split(',').map(s => s.trim()) : [],
-                    material: formData.material,
-                    care: formData.care,
-                    image: imageUrl,
-                    in_stock: parseInt(formData.stock_quantity) > 0,
-                })
-                .eq("id", parseInt(id))
-
-            if (updateError) throw updateError
-
-            router.push('/admin/products')
-            router.refresh()
-
-        } catch (error) {
-            console.error("Error updating product:", error)
-            alert("Failed to update product")
-        } finally {
-            setIsSaving(false)
-        }
-    }
-
-    if (isLoading) return <div>Loading product...</div>
 
     return (
-        <div className="max-w-2xl mx-auto space-y-8">
-            <div className="flex items-center gap-4">
-                <Link href="/admin/products" className="text-gray-500 hover:text-gray-900">
-                    ← Back
+        <div className="space-y-6">
+            {/* Header */}
+            <div>
+                <Link
+                    href="/admin/products"
+                    className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-2"
+                >
+                    <ChevronLeft className="w-4 h-4" />
+                    Back to Products
                 </Link>
                 <h1 className="text-2xl font-bold text-gray-900">Edit Product</h1>
+                <p className="text-gray-500 mt-1">Update product: {product.name}</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 space-y-6">
-
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Product Name</label>
-                    <input
-                        name="name"
-                        required
-                        value={formData.name}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
-                    />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Category</label>
-                        <select
-                            name="category"
-                            value={formData.category}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
-                        >
-                            <option value="saree">Saree</option>
-                            <option value="chudithar">Chudithar</option>
-                        </select>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Stock Quantity</label>
-                        <input
-                            type="number"
-                            name="stock_quantity"
-                            required
-                            min="0"
-                            value={formData.stock_quantity}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
-                        />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Price (₹)</label>
-                        <input
-                            type="number"
-                            name="price"
-                            required
-                            min="0"
-                            value={formData.price}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Original Price</label>
-                        <input
-                            type="number"
-                            name="original_price"
-                            min="0"
-                            value={formData.original_price}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Description</label>
-                    <textarea
-                        name="description"
-                        rows={4}
-                        value={formData.description}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Sizes (Comma separated)</label>
-                    <input
-                        name="sizes"
-                        value={formData.sizes}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Current Image</label>
-                    {currentImage && (
-                        <div className="mb-2">
-                            <img src={currentImage} alt="Current" className="h-20 w-20 object-cover rounded" />
-                        </div>
-                    )}
-                    <label className="text-sm font-medium text-gray-700">Change Image (Optional)</label>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        className="w-full"
-                    />
-                </div>
-
-                <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="w-full bg-orange-600 text-white font-bold py-3 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
-                >
-                    {isSaving ? "Saving..." : "Update Product"}
-                </button>
-            </form>
+            {/* Form */}
+            <ProductForm mode="edit" productId={Number(id)} initialData={initialData} />
         </div>
     )
 }
