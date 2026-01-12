@@ -72,14 +72,28 @@ export default function OrdersPage() {
 
     useEffect(() => {
         async function fetchOrders() {
-            if (!isAuthenticated || !user?.email) {
+            if (!isAuthenticated || !user) {
+                setLoading(false)
+                return
+            }
+
+            // Need at least email or phone to fetch orders
+            if (!user.email && !user.phone) {
                 setLoading(false)
                 return
             }
 
             try {
-                // Fetch orders using user's email
-                const response = await fetch(`/api/orders?email=${encodeURIComponent(user.email)}`)
+                // Build query params - fetch by email AND/OR phone
+                const params = new URLSearchParams()
+                if (user.email) {
+                    params.append("email", user.email)
+                }
+                if (user.phone) {
+                    params.append("phone", user.phone)
+                }
+
+                const response = await fetch(`/api/orders?${params.toString()}`)
                 const data = await response.json()
 
                 if (data.success) {

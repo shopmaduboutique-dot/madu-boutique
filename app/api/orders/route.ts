@@ -201,7 +201,10 @@ export async function GET(request: Request) {
       `)
             .order("created_at", { ascending: false })
 
-        if (phone) {
+        // If both phone and email are provided, search by either (OR condition)
+        if (phone && email) {
+            query = query.or(`delivery_phone.eq.${phone},delivery_email.eq.${email}`)
+        } else if (phone) {
             query = query.eq("delivery_phone", phone)
         } else if (email) {
             query = query.eq("delivery_email", email)
