@@ -4,7 +4,7 @@ export default function Hero() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center space-y-4 sm:space-y-6">
           <div className="inline-block px-4 py-2 bg-orange-100 rounded-full mb-2">
-            <p className="text-xs sm:text-sm font-semibold text-orange-600 uppercase tracking-wide">
+            <p className="text-xs sm:text-sm font-semibold text-orange-700 uppercase tracking-wide">
               Welcome to Elegance
             </p>
           </div>
@@ -23,7 +23,7 @@ export default function Hero() {
           </p>
 
           <div className="pt-4 sm:pt-6 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
-            <button className="w-full sm:w-auto px-8 py-3 sm:py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl active:scale-95">
+            <button className="w-full sm:w-auto px-8 py-3 sm:py-4 bg-orange-700 hover:bg-orange-800 text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl active:scale-95">
               Shop Now
             </button>
             <button className="w-full sm:w-auto px-8 py-3 sm:py-4 border-2 border-orange-500 text-orange-500 hover:bg-orange-50 font-bold rounded-lg transition-all">

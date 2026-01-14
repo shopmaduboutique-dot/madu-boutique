@@ -29,7 +29,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* New badge */}
           {product.isNew && (
-            <div className="absolute top-3 left-3 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+            <div className="absolute top-3 left-3 bg-orange-700 text-white px-3 py-1 rounded-full text-xs font-bold">
               New
             </div>
           )}
@@ -40,6 +40,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       <button
         onClick={() => setIsFavorite(!isFavorite)}
         className="absolute top-12 right-3 p-2.5 bg-white rounded-full shadow-lg hover:shadow-xl transition-all z-10 active:scale-95 hover:scale-110"
+        aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
       >
         <svg
           className={`w-5 h-5 transition-colors ${isFavorite ? "fill-red-500 text-red-500" : "text-gray-400 hover:text-red-400"}`}

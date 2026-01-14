@@ -52,7 +52,7 @@ export default function Navbar() {
                                         key={link.name}
                                         href={link.href}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive
-                                            ? "bg-orange-100 text-orange-600"
+                                            ? "bg-orange-100 text-orange-700"
                                             : "text-gray-600 hover:bg-gray-100 hover:text-black"
                                             }`}
                                     >
@@ -111,7 +111,7 @@ export default function Navbar() {
                                     ) : (
                                         <button
                                             onClick={() => setShowAuthModal(true)}
-                                            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
+                                            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-orange-700 text-white rounded-lg hover:bg-orange-800 transition-colors text-sm font-medium"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -126,6 +126,7 @@ export default function Navbar() {
                             <button
                                 onClick={() => setIsCartOpen(true)}
                                 className="relative p-3 hover:bg-orange-50 rounded-lg transition-colors"
+                                aria-label="Shopping cart"
                                 data-cart-icon
                             >
                                 <svg
@@ -152,6 +153,7 @@ export default function Navbar() {
                             <button
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                                 className="md:hidden p-3 hover:bg-gray-100 rounded-lg transition-colors"
+                                aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
                             >
                                 <svg
                                     className="w-6 h-6 text-black"
@@ -192,7 +194,7 @@ export default function Navbar() {
                                             href={link.href}
                                             onClick={() => setIsMobileMenuOpen(false)}
                                             className={`px-4 py-3 rounded-lg text-base font-medium transition-all ${isActive
-                                                ? "bg-orange-100 text-orange-600"
+                                                ? "bg-orange-100 text-orange-700"
                                                 : "text-gray-600 hover:bg-gray-100 hover:text-black"
                                                 }`}
                                         >
