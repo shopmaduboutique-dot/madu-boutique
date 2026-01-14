@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Clock, Eye } from "lucide-react"
+import { Clock, Eye, ChevronRight } from "lucide-react"
 
 interface Order {
     id: string
@@ -34,8 +34,8 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
     }
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <div>
                     <h3 className="text-lg font-semibold text-gray-900">Today&apos;s Orders</h3>
                     <p className="text-sm text-gray-500">{orders.length} orders today</p>
@@ -55,70 +55,107 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
                     <p className="text-gray-500">No orders yet today</p>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-gray-100">
-                                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">
-                                    Order
-                                </th>
-                                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">
-                                    Customer
-                                </th>
-                                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">
-                                    Status
-                                </th>
-                                <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">
-                                    Amount
-                                </th>
-                                <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">
-                                    Time
-                                </th>
-                                <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">
-
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {orders.map((order) => (
-                                <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="py-3">
+                <>
+                    {/* Mobile Card View */}
+                    <div className="lg:hidden divide-y divide-gray-100 -mx-4 sm:-mx-6">
+                        {orders.slice(0, 5).map((order) => (
+                            <Link
+                                key={order.id}
+                                href={`/admin/orders/${order.id}`}
+                                className="flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-gray-50 transition-colors"
+                            >
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
                                         <span className="font-mono text-sm text-gray-900">
                                             {order.order_number}
                                         </span>
-                                    </td>
-                                    <td className="py-3">
-                                        <span className="text-sm text-gray-700">{order.delivery_name}</span>
-                                    </td>
-                                    <td className="py-3">
                                         <span
-                                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[order.status] || "bg-gray-100 text-gray-800"
+                                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[order.status] || "bg-gray-100 text-gray-800"
                                                 }`}
                                         >
                                             {order.status}
                                         </span>
-                                    </td>
-                                    <td className="py-3 text-right">
-                                        <span className="text-sm font-medium text-gray-900">
-                                            ₹{Number(order.total).toLocaleString("en-IN")}
-                                        </span>
-                                    </td>
-                                    <td className="py-3 text-right">
-                                        <span className="text-sm text-gray-500">{formatTime(order.created_at)}</span>
-                                    </td>
-                                    <td className="py-3 text-right">
-                                        <Link
-                                            href={`/admin/orders/${order.id}`}
-                                            className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors inline-flex"
-                                        >
-                                            <Eye className="w-4 h-4" />
-                                        </Link>
-                                    </td>
+                                    </div>
+                                    <p className="text-sm text-gray-500 truncate">
+                                        {order.delivery_name} • {formatTime(order.created_at)}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2 ml-3">
+                                    <span className="text-sm font-semibold text-gray-900">
+                                        ₹{Number(order.total).toLocaleString("en-IN")}
+                                    </span>
+                                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-gray-100">
+                                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">
+                                        Order
+                                    </th>
+                                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">
+                                        Customer
+                                    </th>
+                                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">
+                                        Status
+                                    </th>
+                                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">
+                                        Amount
+                                    </th>
+                                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">
+                                        Time
+                                    </th>
+                                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-3">
+
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {orders.map((order) => (
+                                    <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="py-3">
+                                            <span className="font-mono text-sm text-gray-900">
+                                                {order.order_number}
+                                            </span>
+                                        </td>
+                                        <td className="py-3">
+                                            <span className="text-sm text-gray-700">{order.delivery_name}</span>
+                                        </td>
+                                        <td className="py-3">
+                                            <span
+                                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[order.status] || "bg-gray-100 text-gray-800"
+                                                    }`}
+                                            >
+                                                {order.status}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 text-right">
+                                            <span className="text-sm font-medium text-gray-900">
+                                                ₹{Number(order.total).toLocaleString("en-IN")}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 text-right">
+                                            <span className="text-sm text-gray-500">{formatTime(order.created_at)}</span>
+                                        </td>
+                                        <td className="py-3 text-right">
+                                            <Link
+                                                href={`/admin/orders/${order.id}`}
+                                                className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors inline-flex"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </Link>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
             )}
         </div>
     )

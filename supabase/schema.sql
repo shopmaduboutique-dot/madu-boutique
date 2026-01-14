@@ -64,6 +64,10 @@ CREATE TABLE IF NOT EXISTS orders (
   subtotal DECIMAL(10,2) NOT NULL,
   shipping_cost DECIMAL(10,2) DEFAULT 99,
   total DECIMAL(10,2) NOT NULL,
+  -- Razorpay Integration
+  razorpay_order_id TEXT UNIQUE,
+  razorpay_payment_id TEXT,
+  razorpay_signature TEXT,
   -- Delivery Details (stored separately in case user updates their profile)
   delivery_name TEXT NOT NULL,
   delivery_phone TEXT NOT NULL,

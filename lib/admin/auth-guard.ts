@@ -3,9 +3,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { jwtVerify } from "jose"
 
 // Secret key for JWT verification - must match the one used in login
-const JWT_SECRET = new TextEncoder().encode(
-    process.env.ADMIN_JWT_SECRET || "madu-boutique-admin-secret-key-2024"
-)
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET
+
+if (!ADMIN_JWT_SECRET) {
+    throw new Error("ADMIN_JWT_SECRET is not defined")
+}
+
+const JWT_SECRET = new TextEncoder().encode(ADMIN_JWT_SECRET)
 
 export interface AdminUser {
     id: string

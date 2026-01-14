@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Search, Eye, ShoppingCart, Calendar } from "lucide-react"
+import { Search, Eye, ShoppingCart, ChevronRight } from "lucide-react"
 import { useAdminOrders, type Order } from "@/lib/admin/hooks/use-admin-orders"
 
 const statusColors: Record<string, string> = {
@@ -35,6 +35,13 @@ export default function OrdersPage() {
         })
     }
 
+    const formatDateShort = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+        })
+    }
+
     if (error) {
         return (
             <div className="text-center py-12">
@@ -59,7 +66,7 @@ export default function OrdersPage() {
 
             {/* Filters */}
             <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-3">
                     {/* Search */}
                     <div className="flex-1 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -68,7 +75,7 @@ export default function OrdersPage() {
                             placeholder="Search by order # or customer..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                         />
                     </div>
 
@@ -76,7 +83,7 @@ export default function OrdersPage() {
                     <select
                         value={dateRange}
                         onChange={(e) => setDateRange(e.target.value)}
-                        className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        className="px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                     >
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
@@ -88,7 +95,7 @@ export default function OrdersPage() {
                     <select
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
-                        className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        className="px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                     >
                         <option value="all">All Statuses</option>
                         <option value="pending">Pending</option>
@@ -101,7 +108,7 @@ export default function OrdersPage() {
                 </div>
             </div>
 
-            {/* Orders Table */}
+            {/* Orders Content */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 {loading ? (
                     <div className="p-6">
@@ -122,84 +129,124 @@ export default function OrdersPage() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="bg-gray-50 border-b border-gray-200">
-                                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
-                                        Order
-                                    </th>
-                                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
-                                        Customer
-                                    </th>
-                                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
-                                        Items
-                                    </th>
-                                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
-                                        Status
-                                    </th>
-                                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
-                                        Total
-                                    </th>
-                                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
-                                        Date
-                                    </th>
-                                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
-
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {orders.map((order) => (
-                                    <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <span className="font-mono text-sm text-gray-900">
-                                                {order.order_number}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900">
-                                                    {order.delivery_name}
-                                                </p>
-                                                <p className="text-xs text-gray-500">{order.delivery_city}</p>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="text-sm text-gray-600">
-                                                {order.order_items?.length || 0} item(s)
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span
-                                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[order.status] || "bg-gray-100 text-gray-800"
-                                                    }`}
-                                            >
-                                                {order.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <span className="text-sm font-medium text-gray-900">
+                    <>
+                        {/* Mobile Card View */}
+                        <div className="lg:hidden divide-y divide-gray-100">
+                            {orders.map((order) => (
+                                <Link
+                                    key={order.id}
+                                    href={`/admin/orders/${order.id}`}
+                                    className="block p-4 hover:bg-gray-50 transition-colors"
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="font-mono text-sm font-medium text-gray-900">
+                                            {order.order_number}
+                                        </span>
+                                        <span
+                                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[order.status] || "bg-gray-100 text-gray-800"
+                                                }`}
+                                        >
+                                            {order.status}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-gray-900">{order.delivery_name}</p>
+                                            <p className="text-xs text-gray-500">
+                                                {order.order_items?.length || 0} item(s) • {formatDateShort(order.created_at)}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-semibold text-gray-900">
                                                 ₹{Number(order.total).toLocaleString("en-IN")}
                                             </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <span className="text-sm text-gray-500">{formatDate(order.created_at)}</span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <Link
-                                                href={`/admin/orders/${order.id}`}
-                                                className="inline-flex items-center gap-1 text-sm text-orange-600 hover:text-orange-700 font-medium"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                                View
-                                            </Link>
-                                        </td>
+                                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+
+                        {/* Desktop Table View */}
+                        <div className="hidden lg:block overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-200">
+                                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
+                                            Order
+                                        </th>
+                                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
+                                            Customer
+                                        </th>
+                                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
+                                            Items
+                                        </th>
+                                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
+                                            Status
+                                        </th>
+                                        <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
+                                            Total
+                                        </th>
+                                        <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
+                                            Date
+                                        </th>
+                                        <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-4">
+
+                                        </th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {orders.map((order) => (
+                                        <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <span className="font-mono text-sm text-gray-900">
+                                                    {order.order_number}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-900">
+                                                        {order.delivery_name}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">{order.delivery_city}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm text-gray-600">
+                                                    {order.order_items?.length || 0} item(s)
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span
+                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[order.status] || "bg-gray-100 text-gray-800"
+                                                        }`}
+                                                >
+                                                    {order.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className="text-sm font-medium text-gray-900">
+                                                    ₹{Number(order.total).toLocaleString("en-IN")}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className="text-sm text-gray-500">{formatDate(order.created_at)}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <Link
+                                                    href={`/admin/orders/${order.id}`}
+                                                    className="inline-flex items-center gap-1 text-sm text-orange-600 hover:text-orange-700 font-medium"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                    View
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
             </div>
         </div>

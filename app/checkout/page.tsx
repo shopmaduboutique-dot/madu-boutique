@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 import Navbar from "@/components/layout/navbar"
 import Footer from "@/components/layout/footer"
 import { useCart } from "@/lib/cart-context"
@@ -201,7 +202,12 @@ function CheckoutContent() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    amount: total,
+                    items: checkoutItems.map(item => ({
+                        id: item.id,
+                        quantity: item.quantity,
+                        size: item.size // pass size if needed
+                    })),
+                    customer: formData,
                     currency: "INR",
                     receipt: `rcpt_${Date.now()}`,
                     notes: {
@@ -235,11 +241,6 @@ function CheckoutContent() {
                                 razorpay_order_id: response.razorpay_order_id,
                                 razorpay_payment_id: response.razorpay_payment_id,
                                 razorpay_signature: response.razorpay_signature,
-                                orderData: {
-                                    items: checkoutItems,
-                                    customer: formData,
-                                    shippingCost,
-                                },
                             }),
                         })
 
@@ -569,8 +570,8 @@ function CheckoutContent() {
                                             className="w-5 h-5 mt-0.5 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
                                         />
                                         <span className="text-sm text-gray-700">
-                                            I agree to the <span className="font-medium text-black">Terms and Conditions</span> and{" "}
-                                            <span className="font-medium text-black">Privacy Policy</span>
+                                            I agree to the <Link href="/terms-of-service" className="font-medium text-black hover:text-orange-600 underline" target="_blank">Terms and Conditions</Link> and{" "}
+                                            <Link href="/privacy-policy" className="font-medium text-black hover:text-orange-600 underline" target="_blank">Privacy Policy</Link>
                                         </span>
                                     </label>
                                 </div>
