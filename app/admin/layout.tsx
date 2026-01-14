@@ -3,15 +3,18 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
 import AdminSidebar from "@/components/admin/admin-sidebar"
 import { Menu, Store } from "lucide-react"
 
+interface AdminUser {
+    email: string
+}
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { isAuthenticated, isLoading, user } = useAuth()
     const router = useRouter()
     const pathname = usePathname()
     const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+    const [adminUser, setAdminUser] = useState<AdminUser | null>(null)
     const [checkingAdmin, setCheckingAdmin] = useState(true)
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -30,22 +33,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             return
         }
 
-        // Check admin status once auth is loaded
+        // Check admin status via API (uses admin-session cookie)
         const checkAdminStatus = async () => {
-            if (isLoading) return
-
-            if (!isAuthenticated) {
-                router.replace("/admin/login")
-                return
-            }
-
             try {
-                // Fetch the current user's role from the API
-                const response = await fetch("/api/admin/verify")
+                const response = await fetch("/api/admin/verify", {
+                    credentials: "include" // Ensure cookies are sent
+                })
                 const data = await response.json()
 
                 if (data.isAdmin) {
                     setIsAdmin(true)
+                    setAdminUser(data.user)
                 } else {
                     setIsAdmin(false)
                     router.replace("/admin/login")
@@ -59,7 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
 
         checkAdminStatus()
-    }, [isAuthenticated, isLoading, router, isLoginPage])
+    }, [router, isLoginPage])
 
     // Render login page without sidebar/wrapper
     if (isLoginPage) {
@@ -67,7 +65,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     // Show loading while checking auth
-    if (isLoading || checkingAdmin) {
+    if (checkingAdmin) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
@@ -109,8 +107,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex">
                 {/* Sidebar */}
                 <AdminSidebar
-                    userName={user?.fullName || "Admin"}
-                    userEmail={user?.email || ""}
+                    userName="Admin"
+                    userEmail={adminUser?.email || ""}
                     isOpen={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
                 />
