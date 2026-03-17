@@ -1,0 +1,94 @@
+import { NextRequest, NextResponse } from "next/server"
+import { requireAdmin } from "@/lib/admin/auth-guard"
+import { createServerClient } from "@/lib/supabase"
+
+// GET /api/admin/orders - List all orders with filters
+export async function GET(request: NextRequest) {
+    const { admin, errorResponse } = await requireAdmin(request)
+    if (errorResponse) return errorResponse
+
+    try {
+        const supabase = createServerClient()
+        const { searchParams } = new URL(request.url)
+
+        const status = searchParams.get("status")
+        const search = searchParams.get("search")
+        const dateRange = searchParams.get("date") // "today" | "week" | "month" | "all"
+        const page = parseInt(searchParams.get("page") || "1")
+        const limit = parseInt(searchParams.get("limit") || "10")
+        const from = (page - 1) * limit
+        const to = from + limit - 1
+
+        let query = supabase
+            .from("orders")
+            .select(`
+                *,
+                order_items (
+                    id,
+                    product_name,
+                    product_price,
+                    size,
+                    quantity,
+                    line_total
+                )
+            `, { count: "exact" })
+            .order("created_at", { ascending: false })
+            .range(from, to)
+
+        // Filter by status
+        if (status && status !== "all") {
+            query = query.eq("status", status)
+        }
+
+        // Filter by date range
+        if (dateRange && dateRange !== "all") {
+            const now = new Date()
+            let fromDate: Date
+
+            switch (dateRange) {
+                case "today":
+                    fromDate = new Date(now.setHours(0, 0, 0, 0))
+                    break
+                case "week":
+                    fromDate = new Date(now.setDate(now.getDate() - 7))
+                    break
+                case "month":
+                    fromDate = new Date(now.setMonth(now.getMonth() - 1))
+                    break
+                default:
+                    fromDate = new Date(0)
+            }
+
+            query = query.gte("created_at", fromDate.toISOString())
+        }
+
+        // Search by order number or customer name
+        if (search) {
+            query = query.or(`order_number.ilike.%${search}%,delivery_name.ilike.%${search}%`)
+        }
+
+        const { data: orders, error, count } = await query
+
+        if (error) {
+            console.error("Error fetching orders:", error)
+            return NextResponse.json(
+                { success: false, error: "Failed to fetch orders" },
+                { status: 500 }
+            )
+        }
+
+        return NextResponse.json({ 
+            success: true, 
+            data: orders,
+            count,
+            page,
+            totalPages: Math.ceil((count || 0) / limit)
+        })
+    } catch (error) {
+        console.error("Error in GET /api/admin/orders:", error)
+        return NextResponse.json(
+            { success: false, error: "Failed to fetch orders" },
+            { status: 500 }
+        )
+    }
+}
