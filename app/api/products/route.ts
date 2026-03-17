@@ -7,18 +7,12 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url)
         const category = searchParams.get("category")
-        const page = parseInt(searchParams.get("page") || "1")
-        const limit = parseInt(searchParams.get("limit") || "10")
-        const from = (page - 1) * limit
-        const to = from + limit - 1
-
         const supabase = createServerClient()
 
         let query = supabase
             .from("products")
             .select("*", { count: "exact" })
-            .order("id", { ascending: true })
-            .range(from, to)
+            .order("created_at", { ascending: true })
 
         // Filter by category if provided
         if (category) {
@@ -57,8 +51,6 @@ export async function GET(request: Request) {
             success: true,
             data: formattedProducts,
             count,
-            page,
-            totalPages: Math.ceil((count || 0) / limit)
         })
     } catch (error) {
         console.error("API error:", error)

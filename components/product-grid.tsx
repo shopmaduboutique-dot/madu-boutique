@@ -3,90 +3,70 @@
 import { useState, useEffect, useCallback } from "react"
 import ProductCard from "./product-card"
 import type { Product } from "@/lib/types"
+import { supabase } from "@/lib/supabase"
 
 interface ProductGridProps {
   category: string
 }
 
-import { supabase } from "@/lib/supabase"
-
 export default function ProductGrid({ category }: ProductGridProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
+  const [visibleIds, setVisibleIds] = useState<Set<string | number>>(new Set())
 
-  const fetchProducts = useCallback(async (pageNum: number, isLoadMore = false, signal?: AbortSignal, showLoading = false) => {
-    if (showLoading && !isLoadMore) setLoading(true)
-    if (isLoadMore) setLoadingMore(true)
+  const fetchProducts = useCallback(async (signal?: AbortSignal) => {
     setError(null)
 
     try {
-      const response = await fetch(`/api/products?category=${category}&page=${pageNum}&limit=6`, { signal })
+      const response = await fetch(`/api/products?category=${category}`, { signal })
       const data = await response.json()
 
       if (data.success) {
-        if (isLoadMore) {
-          setProducts(prev => [...prev, ...data.data])
-        } else {
-          setProducts(data.data)
-        }
-        setHasMore(pageNum < data.totalPages)
+        setProducts(data.data)
       } else {
         setError(data.error || "Failed to load products")
       }
     } catch (err: any) {
-      if (err.name === 'AbortError' || err.message?.includes('aborted')) return
+      if (err.name === "AbortError" || err.message?.includes("aborted")) return
       console.error("Fetch error:", err)
-      if (!isLoadMore) setError("Failed to load products")
+      setError("Failed to load products")
     } finally {
-      if (showLoading && !isLoadMore) setLoading(false)
-      if (isLoadMore) setLoadingMore(false)
+      setLoading(false)
     }
   }, [category])
 
+  // Animate products in one by one as they appear
+  useEffect(() => {
+    products.forEach((product, index) => {
+      setTimeout(() => {
+        setVisibleIds(prev => new Set([...prev, product.id]))
+      }, index * 80)
+    })
+  }, [products])
+
   useEffect(() => {
     const controller = new AbortController()
+    setLoading(true)
+    setVisibleIds(new Set())
+    fetchProducts(controller.signal)
 
-    setPage(1)
-    // 1. Initial Fetch
-    fetchProducts(1, false, controller.signal, true)
-
-    // 2. Real-time Subscription
-    // Subscribe to INSERT, UPDATE, DELETE events on the 'products' table
     const channel = supabase
-      .channel('public:products')
+      .channel("public:products")
       .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'products',
-        },
-        (payload) => {
-          console.log('Real-time change received:', payload)
-          // Simple strategy: Re-fetch current page list to ensure consistency
-          fetchProducts(page, false, controller.signal, false) 
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products" },
+        () => {
+          fetchProducts(controller.signal)
         }
       )
       .subscribe()
 
-    // 3. Cleanup
     return () => {
       controller.abort()
       supabase.removeChannel(channel)
     }
-  }, [fetchProducts, page])
-
-  const loadMore = () => {
-    if (!loadingMore && hasMore) {
-      const nextPage = page + 1
-      setPage(nextPage)
-      fetchProducts(nextPage, true)
-    }
-  }
+  }, [fetchProducts])
 
   if (loading) {
     return (
@@ -99,7 +79,7 @@ export default function ProductGrid({ category }: ProductGridProps) {
             <p className="text-sm text-gray-600">Loading products...</p>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="bg-gray-100 rounded-xl aspect-square animate-pulse" />
             ))}
           </div>
@@ -136,21 +116,19 @@ export default function ProductGrid({ category }: ProductGridProps) {
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {products.map((product, index) => (
-            <ProductCard key={product.id} product={product} priority={index < 4} />
+            <div
+              key={product.id}
+              style={{ transitionDelay: `${index * 60}ms` }}
+              className={`transition-all duration-500 ease-out ${
+                visibleIds.has(product.id)
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-6"
+              }`}
+            >
+              <ProductCard product={product} priority={index < 4} />
+            </div>
           ))}
         </div>
-
-        {hasMore && (
-          <div className="mt-8 sm:mt-12 text-center">
-            <button
-              onClick={loadMore}
-              disabled={loadingMore}
-              className="px-8 py-3 bg-white border-2 border-orange-500 text-orange-600 font-bold rounded-lg hover:bg-orange-50 transition-all disabled:opacity-50"
-            >
-              {loadingMore ? "Loading..." : "Load More"}
-            </button>
-          </div>
-        )}
       </div>
     </section>
   )
